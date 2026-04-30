@@ -1,0 +1,38 @@
+# Plantilla de configuracion de conexiones para funi-dataDB.
+#
+# Copia este fichero a:   ~/.funidelia/connections.yaml
+# (en Windows: C:\Users\<tu-usuario>\.funidelia\connections.yaml)
+#
+# IMPORTANTE: Las contrasenas NO se guardan en este fichero.
+# Para configurar credenciales, ejecuta:
+#     python -m funi_data setup <nombre>
+# Las credenciales se guardan en Windows Credential Manager bajo
+# el namespace "funi-dataDB/<nombre>".
+
+connections:
+
+  # MySQL principal de Funidelia (read-only)
+  - name: mysql-funidelia
+    type: mysql
+    host: HOST_O_IP
+    port: 3306
+    database: NOMBRE_BD
+    schema: null                  # opcional, para motores que separan db/schema
+    description: "MySQL principal Funidelia (read-only)"
+
+  # Ejemplos para Fase 3 (descomenta cuando los necesites):
+  #
+  # - name: pg-cryptotax
+  #   type: postgresql
+  #   host: db.example.com
+  #   port: 5432
+  #   database: cryptotax
+  #   description: "Postgres del SaaS de cripto-tax"
+  #
+  # - name: vertica-analytics
+  #   type: vertica
+  #   host: vertica.internal
+  #   port: 5433
+  #   database: analytics
+  #   schema: public
+  #   description: "Vertica analytics warehouse"
