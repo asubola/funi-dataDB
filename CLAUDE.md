@@ -22,15 +22,22 @@ funi-dataDB/
 ├── .gitignore
 ├── connections.yaml.example     # plantilla a copiar a ~/.funidelia/
 ├── funi_data/
-│   ├── __init__.py
+│   ├── __init__.py              # API publica: connect, Database, make_engine, ...
 │   ├── __main__.py              # python -m funi_data
-│   ├── cli.py                   # comandos setup/list/check/delete
+│   ├── cli.py                   # list / setup / check / delete / ping
 │   ├── connections.py           # carga y valida ~/.funidelia/connections.yaml
 │   ├── credentials.py           # keyring wrapper + setup wizard
-│   ├── engine.py                # (Fase 2) factory SQLAlchemy
-│   ├── client.py                # (Fase 2) connect() context manager
-│   └── connectors/              # (Fase 2/3) drivers por motor
+│   ├── engine.py                # make_engine(): factory de SQLAlchemy Engine
+│   ├── client.py                # Database + connect() context manager
+│   └── connectors/
+│       └── __init__.py          # registro DRIVERS / CONNECT_ARGS por motor
 └── tests/
+    ├── conftest.py              # fake_keyring fixture
+    ├── test_connections.py
+    ├── test_credentials.py
+    ├── test_engine.py
+    ├── test_client.py
+    └── test_integration_mysql.py  # @pytest.mark.integration (BD real)
 ```
 
 ## Modelo de seguridad
@@ -67,18 +74,28 @@ python -m funi_data list                        # listar conexiones y estado de 
 python -m funi_data setup <connection>          # configurar credenciales (prompt seguro)
 python -m funi_data check <connection>          # verificar que hay credenciales guardadas
 python -m funi_data delete <connection>         # borrar credenciales del vault
+python -m funi_data ping <connection>           # conectar y ejecutar SELECT 1 (smoke test)
 ```
 
 ## Tests
 ```bash
-pip install -e ".[dev]"
-pytest
+pip install -e ".[mysql,dev]"
+pytest                          # solo unitarios (sin BD real)
+pytest -m integration           # solo integracion (requiere BD real configurada)
+pytest -m ""                    # todos
 ```
 
+## Cómo añadir un motor nuevo (patrón DRY)
+1. `funi_data/connectors/__init__.py`: añadir entrada a `DRIVERS` y, si aplica, a `CONNECT_ARGS`.
+2. `pyproject.toml`: añadir el driver Python como extra opcional (`[motor]`).
+3. Crear `tests/test_integration_<motor>.py` siguiendo el patrón de `test_integration_mysql.py`.
+4. **No** hace falta tocar `engine.py` ni `client.py` — la factory los lee del registro.
+
 ## Roadmap
-- **Fase 1 (en curso):** credenciales + CLI + smoke test MySQL.
-- **Fase 2:** SQLAlchemy + `connect()` + integración en Purchase Tool.
-- **Fase 3:** conectores PostgreSQL y Vertica.
+- **Fase 1 (completada):** credenciales + CLI + smoke test MySQL.
+- **Fase 2 (completada):** SQLAlchemy + `connect()` + tests unitarios y de integración.
+- **Fase 2.6 (pendiente):** integrar `funi-dataDB` en Purchase Tool migrando 1 query existente.
+- **Fase 3:** conectores PostgreSQL y Vertica cuando aparezcan en proyectos reales.
 
 ## Reglas para Claude
 - Mantener este `CLAUDE.md` actualizado cuando se añadan módulos o cambien decisiones estructurales.

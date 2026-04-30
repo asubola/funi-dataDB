@@ -8,6 +8,7 @@ Comandos:
     setup    <connection>      Configurar credenciales (wizard interactivo).
     check    <connection>      Verificar que hay credenciales guardadas.
     delete   <connection>      Borrar credenciales del vault.
+    ping     <connection>      Conectar y ejecutar SELECT 1 (smoke test).
     help                       Mostrar esta ayuda.
 """
 from __future__ import annotations
@@ -91,6 +92,36 @@ def cmd_delete(args: list[str]) -> int:
     return 0
 
 
+def cmd_ping(args: list[str]) -> int:
+    if not args:
+        print("Uso: python -m funi_data ping <connection>", file=sys.stderr)
+        return 2
+    name = args[0]
+    # Lazy import: solo cuando hace falta (evita arrastrar SQLAlchemy en `list`/`check`).
+    from .client import connect
+
+    try:
+        get_connection(name)
+    except (FileNotFoundError, KeyError) as e:
+        print(f"[ERROR] {e}", file=sys.stderr)
+        return 1
+
+    print(f"Conectando a '{name}'...")
+    try:
+        with connect(name, interactive=False) as db:
+            df = db.query("SELECT 1 AS ok")
+            ok_value = df.iloc[0]["ok"]
+            print(f"[OK] {db!r}")
+            print(f"     SELECT 1 -> {ok_value}")
+        return 0
+    except LookupError as e:
+        print(f"[FALTA] {e}", file=sys.stderr)
+        return 1
+    except Exception as e:  # noqa: BLE001 — mostramos el error real al usuario
+        print(f"[ERROR] Conexion fallida: {type(e).__name__}: {e}", file=sys.stderr)
+        return 1
+
+
 def cmd_help(_: list[str]) -> int:
     print(__doc__)
     return 0
@@ -101,6 +132,7 @@ COMMANDS = {
     "setup": cmd_setup,
     "check": cmd_check,
     "delete": cmd_delete,
+    "ping": cmd_ping,
     "help": cmd_help,
     "-h": cmd_help,
     "--help": cmd_help,
