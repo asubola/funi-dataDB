@@ -14,8 +14,8 @@ from typing import Any, Final
 # Solo los motores listados aqui son ejecutables; el resto lanza NotImplementedError.
 DRIVERS: Final[dict[str, str]] = {
     "mysql": "mysql+pymysql",
-    # "postgresql": "postgresql+psycopg",          # Fase 3
-    # "vertica":    "vertica+vertica_python",      # Fase 3
+    "postgresql": "postgresql+psycopg",
+    "vertica": "vertica+vertica_python",
 }
 
 # Argumentos pasados a sqlalchemy.create_engine(connect_args=...)

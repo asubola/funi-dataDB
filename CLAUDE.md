@@ -95,7 +95,8 @@ pytest -m ""                    # todos
 - **Fase 1 (completada):** credenciales + CLI + smoke test MySQL.
 - **Fase 2 (completada):** SQLAlchemy + `connect()` + tests unitarios y de integración.
 - **Fase 2.6 (pendiente):** integrar `funi-dataDB` en Purchase Tool migrando 1 query existente.
-- **Fase 3:** conectores PostgreSQL y Vertica cuando aparezcan en proyectos reales.
+- **Fase 3 (PostgreSQL completada):** driver `psycopg` activo en `DRIVERS` y verificado contra
+  `backend-funidelia` (ping OK, 22-sep-2026). Vertica sigue pendiente de uso real.
 
 ## Reglas para Claude
 - Mantener este `CLAUDE.md` actualizado cuando se añadan módulos o cambien decisiones estructurales.
