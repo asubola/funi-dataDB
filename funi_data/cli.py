@@ -9,6 +9,7 @@ Comandos:
     check    <connection>      Verificar que hay credenciales guardadas.
     delete   <connection>      Borrar credenciales del vault.
     ping     <connection>      Conectar y ejecutar SELECT 1 (smoke test).
+    notify   <texto> [--channel C]  Enviar un aviso por Slack (FuniHub).
     help                       Mostrar esta ayuda.
 """
 from __future__ import annotations
@@ -122,6 +123,22 @@ def cmd_ping(args: list[str]) -> int:
         return 1
 
 
+def cmd_notify(args: list[str]) -> int:
+    from .notify import slack
+
+    channel = None
+    if "--channel" in args:
+        i = args.index("--channel")
+        channel = args[i + 1] if i + 1 < len(args) else None
+        args = args[:i] + args[i + 2:]
+    if not args:
+        print('Uso: python -m funi_data notify "<texto>" [--channel <canal>]', file=sys.stderr)
+        return 2
+    sent = slack(" ".join(args), channel)
+    print("enviado" if sent else "NO enviado (sin sesión de FuniHub válida o sin permiso)")
+    return 0 if sent else 1
+
+
 def cmd_help(_: list[str]) -> int:
     print(__doc__)
     return 0
@@ -129,6 +146,7 @@ def cmd_help(_: list[str]) -> int:
 
 COMMANDS = {
     "list": cmd_list,
+    "notify": cmd_notify,
     "setup": cmd_setup,
     "check": cmd_check,
     "delete": cmd_delete,

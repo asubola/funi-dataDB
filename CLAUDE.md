@@ -103,3 +103,23 @@ pytest -m ""                    # todos
 - DRY: el patrón de añadir un motor nuevo debe vivir en una sola plantilla; cada `connectors/<motor>.py` debe ser ~30 líneas.
 - No commitear sin que el usuario lo pida explícitamente.
 - No embeber secretos en el código bajo ninguna circunstancia.
+
+## Avisos por Slack (`funi_data.notify`, 2-oct-2026)
+
+Pieza compartida para que los procesos programados avisen de cada ejecución. Solo librería estándar.
+
+```python
+from funi_data.notify import slack
+slack("Reviews de Amazon · OK · 3 nuevas")        # True si FuniHub lo aceptó; nunca lanza
+```
+```bash
+python -m funi_data notify "texto" [--channel "#canal"]
+```
+
+- Canal por defecto: mensaje directo a `@eanzuola`; se cambia con `FUNI_SLACK_CHANNEL` o el parámetro.
+- Identidad: primero la sesión personal de FuniHub que guarda Claude Code (`~/.claude/.credentials.json`), que es la
+  que tiene el permiso `notifications.slack.write`; después la clave de servicio de `M4-Tracker/.env` (hoy sin
+  permiso). La sesión personal caduca a las ~2 h: si está caducada se intenta que Claude Code la renueve
+  (`claude mcp list`; sin verificar que funcione).
+- Importar `funi_data.notify` carga todo `funi_data` (sqlalchemy, pandas, keyring…): un proyecto sin esas
+  dependencias llama a la consola con el Python de este entorno.
