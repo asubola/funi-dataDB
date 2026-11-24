@@ -6,13 +6,42 @@ Esto vive separado de `client.py` para que el patron sea facil de extender:
 """
 from __future__ import annotations
 
-from sqlalchemy import create_engine
+import os
+
+from sqlalchemy import create_engine, event
 from sqlalchemy.engine import Engine
 from sqlalchemy.engine.url import URL
 
 from .connections import Connection, get_connection
 from .connectors import CONNECT_ARGS, DRIVERS
 from .credentials import ensure_credentials
+
+# Tope de ejecucion en el servidor para toda sesion de Vertica (aviso de IT, 24-nov-2026).
+# Si el cliente muere a mitad de una consulta (timeout del comando, proceso matado), Vertica no se
+# entera: la sigue ejecutando y retiene su memoria del pool `general` (~5 GB una pesada), que
+# comparten Tableau y las cargas. Con el tope, una consulta huerfana muere sola.
+# FUNI_VERTICA_RUNTIMECAP_S: segundos (por defecto 1800); 0 lo desactiva.
+VERTICA_RUNTIMECAP_ENV = "FUNI_VERTICA_RUNTIMECAP_S"
+VERTICA_RUNTIMECAP_DEFAULT_S = 1800
+
+
+def vertica_runtimecap_s() -> int:
+    """Segundos del tope de sesion de Vertica (0 = sin tope)."""
+    try:
+        return max(int(os.environ.get(VERTICA_RUNTIMECAP_ENV, VERTICA_RUNTIMECAP_DEFAULT_S)), 0)
+    except ValueError:
+        return VERTICA_RUNTIMECAP_DEFAULT_S
+
+
+def _poner_tope_vertica(dbapi_connection, _record) -> None:
+    tope = vertica_runtimecap_s()
+    if not tope:
+        return
+    cur = dbapi_connection.cursor()
+    try:
+        cur.execute("SET SESSION RUNTIMECAP '%d SECONDS'" % tope)
+    finally:
+        cur.close()
 
 
 def make_engine(name_or_conn: str | Connection, *, interactive: bool = True) -> Engine:
@@ -45,9 +74,12 @@ def make_engine(name_or_conn: str | Connection, *, interactive: bool = True) -> 
         database=conn.database,
     )
 
-    return create_engine(
+    engine = create_engine(
         url,
         connect_args=CONNECT_ARGS.get(conn.type, {}),
         pool_pre_ping=True,
         future=True,
     )
+    if conn.type == "vertica":
+        event.listen(engine, "connect", _poner_tope_vertica)
+    return engine

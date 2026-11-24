@@ -72,3 +72,44 @@ def test_make_engine_password_with_special_chars_is_escaped(fake_keyring) -> Non
     rendered = eng.url.render_as_string(hide_password=False)
     assert "alice" in rendered
     eng.dispose()
+
+
+def test_tope_vertica_por_defecto_y_por_entorno(monkeypatch):
+    from funi_data import engine as eng
+
+    monkeypatch.delenv(eng.VERTICA_RUNTIMECAP_ENV, raising=False)
+    assert eng.vertica_runtimecap_s() == eng.VERTICA_RUNTIMECAP_DEFAULT_S
+    monkeypatch.setenv(eng.VERTICA_RUNTIMECAP_ENV, "300")
+    assert eng.vertica_runtimecap_s() == 300
+    monkeypatch.setenv(eng.VERTICA_RUNTIMECAP_ENV, "no-es-numero")
+    assert eng.vertica_runtimecap_s() == eng.VERTICA_RUNTIMECAP_DEFAULT_S
+
+
+def test_tope_vertica_se_aplica_al_conectar(monkeypatch):
+    from funi_data import engine as eng
+
+    class Cur:
+        def __init__(self):
+            self.sql = []
+
+        def execute(self, sql):
+            self.sql.append(sql)
+
+        def close(self):
+            pass
+
+    class Conn:
+        def __init__(self):
+            self.cur = Cur()
+
+        def cursor(self):
+            return self.cur
+
+    monkeypatch.setenv(eng.VERTICA_RUNTIMECAP_ENV, "120")
+    c = Conn()
+    eng._poner_tope_vertica(c, None)
+    assert c.cur.sql == ["SET SESSION RUNTIMECAP '120 SECONDS'"]
+    monkeypatch.setenv(eng.VERTICA_RUNTIMECAP_ENV, "0")
+    c = Conn()
+    eng._poner_tope_vertica(c, None)
+    assert c.cur.sql == []
